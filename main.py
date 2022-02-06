@@ -24,7 +24,6 @@ def list_events(service) -> None:
     page_token = None
     while has_next:
         events_result = service.events().list(calendarId=CALENDAR_ID, timeMin=now,
-                                            maxResults=3, singleEvents=True,
                                             orderBy='startTime', pageToken=page_token,
                                             privateExtendedProperty="tag=generated-birthday-event").execute()
         events.extend(events_result.get('items', []))
