@@ -2,3 +2,4 @@ __pycache__/
 client_secret*
 token.pickle
 config.py
+people.json

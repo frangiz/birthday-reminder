@@ -1,7 +1,40 @@
-from datetime import datetime, timedelta
+from collections import defaultdict
+from datetime import datetime, timedelta, date
+import json
+
+from pydantic import BaseModel, parse_obj_as, root_validator
 from cal_setup import get_calendar_service
 from config import CALENDAR_ID
 import googleapiclient.errors
+from typing import List
+
+
+class Person(BaseModel):
+    name: str
+    dob: date
+
+    @property
+    def pid(self):
+        return self.name.lower().replace(" ", "")+self.dob.isoformat().replace("-", "")
+
+
+class EventResponse(BaseModel):
+    id: str
+    start: date
+    summary: str
+    description: str
+    extended_properties: dict[str, dict[str, str]]
+
+    @root_validator(pre=True)
+    def extract_properties(cls, values):
+        values["start"] = values["start"]["date"]
+        values["extended_properties"] = values["extendedProperties"]
+        return values
+
+
+def load_persons() -> List[Person]:
+    with open("people.json", "r") as f:
+        return parse_obj_as(List[Person], json.load(f))
 
 
 def del_event(service, event_id: str) -> None:
@@ -16,28 +49,23 @@ def del_event(service, event_id: str) -> None:
     print("Event deleted")
 
 
-def list_events(service) -> None:
+def list_events(service) -> EventResponse:
     now = datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
     events = []
-
     has_next = True
     page_token = None
     while has_next:
         events_result = service.events().list(calendarId=CALENDAR_ID, timeMin=now,
+                                            singleEvents=True,
                                             orderBy='startTime', pageToken=page_token,
                                             privateExtendedProperty="tag=generated-birthday-event").execute()
-        events.extend(events_result.get('items', []))
+        events.extend(parse_obj_as(List[EventResponse], events_result.get('items', [])))
         page_token = events_result.get('nextPageToken', "")
         has_next = (page_token != "")
-
-    if not events:
-        print('No upcoming events found.')
-    for event in events:
-        start = event['start'].get('dateTime', event['start'].get('date'))
-        print(start, event['summary'], event['id'], event['extendedProperties']['private'])
+    return events
 
 
-def create_event(service, fullname: str, age: int):
+def create_event(service, pid: str, fullname: str, age: int):
     day = (datetime.now() +timedelta(days=1)).date().isoformat()
     event_result = service.events().insert(calendarId=CALENDAR_ID,
         body={ 
@@ -45,12 +73,10 @@ def create_event(service, fullname: str, age: int):
             "description": f"{fullname} turns {age} today!",
             "start": {"date": day}, 
             "end": {"date": day},
-            "extendedProperties": {"private": {"tag": "generated-birthday-event"}}
+            "extendedProperties": {"private": {"tag": "generated-birthday-event", "pid": pid}}
         }
     ).execute()
-
-    print("created event")
-    print("id: ", event_result['id'])
+    print(f"created event: id: {event_result['id']}")
 
 
 def list_calendars(service):
@@ -67,18 +93,40 @@ def list_calendars(service):
 
 
 def main():
+    persons = load_persons()
     service = get_calendar_service()
 
-    # Suggested workflow
-    # Get list of persons from file (fullname, dob, dod)
-    # Get list of future birthdays and cache
-    # Generate new future birthdays
-    # Store new birthdays if not in cache
-    ## To figure out, how to handle if a person have died and make sure there are no upcoming birthdays
+    # Seed with some event data, to be removed
+    create_event(service, persons[0].pid, persons[0].name, 45)
+
+    existing_birthdays = defaultdict(list)
+    for event in list_events(service):
+        existing_birthdays[event.extended_properties["private"]["pid"]].append(event)
+
+    # just for dev output, to be removed
+    for k, v in existing_birthdays.items():
+        print(f"{k}:")
+        for e in v:
+            print(f"  {e}")
+
+    for person in persons:
+        if person.pid in existing_birthdays:
+            del existing_birthdays[person.pid]
+            # TODO: check if we should modify any events
+        else:  # We have a new person
+            pass
+            # TODO: generate events and upload them
+    
+    # Any keys left shoule be removed since the person does not exist in the source data anymore
+    for pid in list(existing_birthdays.keys()):
+        for event in existing_birthdays[pid]:
+            print(f"Deleting event for {event.id=} and {event.summary=}")
+            del_event(service, event.id)
+        del existing_birthdays[pid]
 
     #list_calendars(service)
-    #create_event(service, "John Doe", 45)
-    list_events(service)
+    #create_event(service, persons[0].pid, persons[0].name, 45)
+    #list_events(service)
     #del_event(service, "q9gde174scfkjj6crv7q21rml4")
 
 if __name__ == '__main__':
