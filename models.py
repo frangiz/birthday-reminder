@@ -1,5 +1,6 @@
 from pydantic import BaseModel, root_validator
 from datetime import date
+from typing import List
 
 
 class Person(BaseModel):
@@ -9,6 +10,11 @@ class Person(BaseModel):
     @property
     def pid(self):
         return self.name.lower().replace(" ", "")+self.dob.isoformat().replace("-", "")
+
+
+class BirthdayCalendarConfig(BaseModel):
+    calendar_id: str
+    persons: List[Person]
 
 
 class Birthday(BaseModel):

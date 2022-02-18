@@ -3,12 +3,12 @@ import os.path
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
-from config import CREDENTIALS_FILE
 import googleapiclient.errors
 from models import EventResponse
 from pydantic import parse_obj_as
 from datetime import datetime
 from typing import List, Dict
+from pathlib import Path
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/calendar']
@@ -16,12 +16,14 @@ SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 class Gcal():
     def __init__(self):
-        self.service = Gcal.get_calendar_service()
+        self.service = self._get_calendar_service()
         self.calendar_id = None
 
+    def _find_credentials_filename(self):
+        return Path('.').glob('client_secret*.json')[0]
 
-    @staticmethod
-    def get_calendar_service():
+
+    def _get_calendar_service(self):
         creds = None
         # The file token.pickle stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
@@ -35,7 +37,7 @@ class Gcal():
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    CREDENTIALS_FILE, SCOPES)
+                    self._find_credentials_filename(), SCOPES)
                 creds = flow.run_local_server(port=0)
 
             # Save the credentials for the next run

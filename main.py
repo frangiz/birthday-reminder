@@ -1,22 +1,16 @@
 from collections import defaultdict
 from datetime import date
-import json
 
-from pydantic import parse_obj_as
 from gcal import Gcal
-from config import CALENDAR_ID
 from typing import DefaultDict, List, Tuple
 
 from dateutil.relativedelta import relativedelta
-from models import Person, EventResponse
+from models import BirthdayCalendarConfig, EventResponse
+
+NUMBER_OF_BIRTHDAYS_IN_THE_FUTURE = 10
 
 
-def load_persons() -> List[Person]:
-    with open("people.json", "r") as f:
-        return parse_obj_as(List[Person], json.load(f))
-
-
-def create_birthday_event(pid: str, fullname: str, day: date, age: int):
+def create_birthday_event_body(pid: str, fullname: str, day: date, age: int):
     return { 
             "summary": f"🎂 {fullname}'s birthday",
             "description": f"{fullname} turns {age} today!",
@@ -51,23 +45,23 @@ def get_gcal_events(gcal: Gcal) -> DefaultDict[str, EventResponse]:
 
 
 def main():
-    persons = load_persons()
+    birthday_cal_conf = BirthdayCalendarConfig.parse_file("birthday_calendar_config.json")
     gcal = Gcal()
-    gcal.select_calendar(CALENDAR_ID)
+    gcal.select_calendar(birthday_cal_conf.calendar_id)
 
     gcal_events = get_gcal_events(gcal)
 
-    for person in persons:
+    for person in birthday_cal_conf.persons:
         if person.pid in gcal_events:
-            for day, age in gen_birthday_dates(person.dob, 2):
+            for day, age in gen_birthday_dates(person.dob, NUMBER_OF_BIRTHDAYS_IN_THE_FUTURE):
                 found = any(day == gevent.start for gevent in gcal_events[person.pid])
                 if not found:
-                    body = create_birthday_event(person.pid, person.name, day, age)
+                    body = create_birthday_event_body(person.pid, person.name, day, age)
                     gcal.create_event(body)
             del gcal_events[person.pid]
         else:  # We have a new person
-            for day, age in gen_birthday_dates(person.dob, 2):
-                body = create_birthday_event(person.pid, person.name, day, age)
+            for day, age in gen_birthday_dates(person.dob, NUMBER_OF_BIRTHDAYS_IN_THE_FUTURE):
+                body = create_birthday_event_body(person.pid, person.name, day, age)
                 gcal.create_event(body)
 
     # Any keys left should be removed since the person does not exist in the source data anymore
