@@ -78,7 +78,8 @@ class Gcal():
 
 
     def list_events(self) -> EventResponse:
-        now = datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
+        #now = datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
+        now = "2020-01-01T00:00:00.000001Z"
         events = []
         has_next = True
         page_token = None
