@@ -47,7 +47,8 @@ def get_gcal_events(gcal: Gcal) -> DefaultDict[str, EventResponse]:
 def main():
     birthday_cal_conf = BirthdayCalendarConfig.parse_file("birthday_calendar_config.json")
     gcal = Gcal()
-    gcal.select_calendar(birthday_cal_conf.calendar_id)
+    calendar_id, _, __ = next(c for c in gcal.get_calendars() if c[1] == birthday_cal_conf.calendar_name)
+    gcal.select_calendar(calendar_id)
 
     gcal_events = get_gcal_events(gcal)
 

@@ -46,17 +46,25 @@ class Gcal():
 
         return build('calendar', 'v3', credentials=creds)
 
-
-    def list_calendars(self):
-        print('Getting list of calendars')
+    def get_calendars(self):
         calendars_result = self.service.calendarList().list().execute()
         calendars = calendars_result.get('items', [])
-        if not calendars:
-            print('No calendars found.')
+        res = []
         for calendar in calendars:
             summary = calendar['summary']
             id = calendar['id']
-            primary = "Primary" if calendar.get('primary') else ""
+            primary = calendar.get('primary')
+            res.append((id, summary, primary))
+        return res
+
+
+    def list_calendars(self):
+        print('Getting list of calendars')
+        calendars = self.get_calendars()
+        if not calendars:
+            print('No calendars found.')
+        for id, summary, primary in calendars:
+            primary = "Primary" if primary else ""
             print(f"{summary}\t{id}\t{primary}")
 
 

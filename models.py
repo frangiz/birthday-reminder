@@ -13,7 +13,7 @@ class Person(BaseModel):
 
 
 class BirthdayCalendarConfig(BaseModel):
-    calendar_id: str
+    calendar_name: str
     persons: List[Person]
 
 
