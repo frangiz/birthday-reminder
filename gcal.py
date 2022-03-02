@@ -20,7 +20,7 @@ class Gcal():
         self.calendar_id = None
 
     def _find_credentials_filename(self):
-        return Path('.').glob('client_secret*.json')[0]
+        return list(Path('.').glob('client_secret*.json'))[0]
 
 
     def _get_calendar_service(self):
@@ -77,7 +77,7 @@ class Gcal():
         print(f"created event: {event_result['id']=}, {event_result['start']=}, {event_result['description']=}")
 
 
-    def list_events(self) -> EventResponse:
+    def list_events(self) -> List[EventResponse]:
         #now = datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
         now = "2020-01-01T00:00:00.000001Z"
         events = []

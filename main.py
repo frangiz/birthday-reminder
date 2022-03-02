@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date
+from datetime import date, timedelta
 import json
 
 from gcal import Gcal
@@ -23,7 +23,7 @@ def create_birthday_event_body(pid: str, fullname: str, day: date, age: int):
             "summary": f"🎂 {fullname}'s birthday",
             "description": f"{fullname} turns {age} today!",
             "start": {"date": day.isoformat()}, 
-            "end": {"date": day.isoformat()},
+            "end": {"date": (day + timedelta(days=1)).isoformat()},
             "extendedProperties": {"private": {"tag": "generated-birthday-event", "pid": pid}}
         }
 
@@ -43,11 +43,11 @@ def get_gcal_events(gcal: Gcal) -> DefaultDict[str, EventResponse]:
         gcal_events[event.extended_properties["private"]["pid"]].append(event)
 
     # just for dev output, to be removed
-    print("gcal events:")
-    for k, v in gcal_events.items():
-        print(f"{k}:")
-        for e in v:
-            print(f"  {e}")
+    #print("gcal events:")
+    #for k, v in gcal_events.items():
+    #    print(f"{k}:")
+    #    for e in v:
+    #        print(f"  {e}")
     
     return gcal_events
 
