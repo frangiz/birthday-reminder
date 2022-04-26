@@ -61,18 +61,19 @@ def main():
 
         gcal_events = get_gcal_events(gcal)
 
-        for person in birthday_cal_conf.persons:
-            if person.pid in gcal_events:
-                for day, age in gen_birthday_dates(person.dob, NUMBER_OF_BIRTHDAYS_IN_THE_FUTURE):
-                    found = any(day == gevent.start for gevent in gcal_events[person.pid])
-                    if not found:
+        for group in birthday_cal_conf.groups:
+            for person in group.persons:
+                if person.pid in gcal_events:
+                    for day, age in gen_birthday_dates(person.dob, NUMBER_OF_BIRTHDAYS_IN_THE_FUTURE):
+                        found = any(day == gevent.start for gevent in gcal_events[person.pid])
+                        if not found:
+                            body = create_birthday_event_body(person.pid, person.name, day, age)
+                            gcal.create_event(body)
+                    del gcal_events[person.pid]
+                else:  # We have a new person
+                    for day, age in gen_birthday_dates(person.dob, NUMBER_OF_BIRTHDAYS_IN_THE_FUTURE):
                         body = create_birthday_event_body(person.pid, person.name, day, age)
                         gcal.create_event(body)
-                del gcal_events[person.pid]
-            else:  # We have a new person
-                for day, age in gen_birthday_dates(person.dob, NUMBER_OF_BIRTHDAYS_IN_THE_FUTURE):
-                    body = create_birthday_event_body(person.pid, person.name, day, age)
-                    gcal.create_event(body)
 
         # Any keys left should be removed since the person does not exist in the source data anymore
         for pid in list(gcal_events.keys()):

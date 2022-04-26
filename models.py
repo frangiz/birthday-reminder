@@ -12,9 +12,14 @@ class Person(BaseModel):
         return self.name.lower().replace(" ", "")+self.dob.isoformat().replace("-", "")
 
 
+class Group(BaseModel):
+    group_name: str
+    persons: List[Person]
+
+
 class BirthdayCalendarConfig(BaseModel):
     calendar_name: str
-    persons: List[Person]
+    groups: List[Group]
 
 
 class Birthday(BaseModel):
