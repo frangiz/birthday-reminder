@@ -7,7 +7,7 @@ from typing import DefaultDict, List, Tuple
 
 from models import BirthdayCalendarConfig, EventResponse
 
-from pydantic import parse_obj_as
+from pydantic import TypeAdapter
 
 
 NUMBER_OF_BIRTHDAYS_IN_THE_FUTURE = 10
@@ -15,7 +15,7 @@ NUMBER_OF_BIRTHDAYS_IN_THE_FUTURE = 10
 
 def load_config() -> List[BirthdayCalendarConfig]:
     with open("birthday_calendar_config.json", "r", encoding="utf-8") as f:
-        return parse_obj_as(List[BirthdayCalendarConfig], json.load(f))
+        return TypeAdapter(List[BirthdayCalendarConfig]).validate_python(json.load(f))
 
 
 def create_birthday_event_body(pid: str, fullname: str, day: date, age: int):
@@ -24,7 +24,8 @@ def create_birthday_event_body(pid: str, fullname: str, day: date, age: int):
             "description": f"{fullname} turns {age} today!",
             "start": {"date": day.isoformat()}, 
             "end": {"date": (day + timedelta(days=1)).isoformat()},
-            "extendedProperties": {"private": {"tag": "generated-birthday-event", "pid": pid}}
+            "extendedProperties": {"private": {"tag": "generated-birthday-event", "pid": pid}},
+            "reminders": {"useDefault": False, "overrides": [{"method": "popup", "minutes": 6 * 60}]}
         }
 
 
